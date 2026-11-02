@@ -41,23 +41,68 @@ Mais detalhes em [Arquitetura e decisões](docs/arquitetura.md).
 
 | Camada | Tecnologias |
 |---|---|
-| Backend | Java, Spring Boot, Spring Data JPA, Spring Security, PostgreSQL, Flyway |
+| Backend | Java 21, Spring Boot 4, Spring Data JPA, Spring Security, PostgreSQL 17, Flyway |
 | Frontend | Angular (PWA), Tailwind CSS |
 | Integração | Open Finance via Pluggy |
 | Infra | Docker, Docker Compose, Caddy, GitHub Actions, VPS Linux |
+
+## Como rodar localmente
+
+### Pré-requisitos
+
+- Java 21
+- Docker e Docker Compose
+
+### Passo a passo
+
+1. Clone o repositório e entre na pasta:
+
+   ```bash
+   git clone https://github.com/AlisonSantos-dev/app-gastos.git
+   cd app-gastos
+   ```
+
+2. Crie o arquivo de variáveis de ambiente a partir do modelo e defina uma senha para o banco:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   > No Windows (PowerShell): `Copy-Item .env.example .env`
+
+3. Suba o banco de dados:
+
+   ```bash
+   docker compose up -d
+   ```
+
+4. Rode a API:
+
+   ```bash
+   cd backend
+   ./mvnw spring-boot:run
+   ```
+
+   > No Windows (PowerShell): `.\mvnw spring-boot:run`
+
+5. Confira se está tudo no ar em [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health). O status deve ser `UP`, inclusive o do banco (`db`).
+
+> Se a porta `5432` já estiver em uso na sua máquina, troque o valor de `DB_PORT` no `.env`.
 
 ## Estrutura do repositório
 
 ```
 app-gastos/
-├── backend/    # API em Spring Boot
-├── frontend/   # App em Angular (PWA)
-└── docs/       # Arquitetura, decisões e especificações
+├── backend/             # API em Spring Boot
+├── frontend/            # App em Angular (PWA)
+├── docs/                # Arquitetura, decisões e especificações
+├── docker-compose.yml   # Banco de dados para desenvolvimento
+└── .env.example         # Modelo das variáveis de ambiente
 ```
 
 ## Roteiro
 
-- [ ] **Fase 0:** Fundação (repositório, projeto e ambiente local)
+- [x] **Fase 0:** Fundação (repositório, projeto e ambiente local)
 - [ ] **Fase 1:** Modelo de dados e integração com o Open Finance · `v0.1.0`
 - [ ] **Fase 2:** Identificação das compras · `v0.2.0`
 - [ ] **Fase 3:** Divisões, contas fixas e fechamento do mês · `v0.3.0`
