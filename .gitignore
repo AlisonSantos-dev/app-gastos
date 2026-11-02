@@ -1,0 +1,47 @@
+# ==========================================
+# Segredos e dados pessoais (NUNCA versionar)
+# ==========================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+dados/
+exports/
+*.xlsx
+*.xls
+*.csv
+
+# ==========================================
+# Java / Maven
+# ==========================================
+target/
+*.class
+*.jar
+*.war
+*.log
+hs_err_pid*
+
+# ==========================================
+# Node / Angular
+# ==========================================
+node_modules/
+dist/
+.angular/
+coverage/
+npm-debug.log*
+
+# ==========================================
+# IDEs
+# ==========================================
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+
+# ==========================================
+# Sistema operacional
+# ==========================================
+.DS_Store
+Thumbs.db
+desktop.ini
