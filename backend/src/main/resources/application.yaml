@@ -34,3 +34,11 @@ management:
   endpoint:
     health:
       show-details: always
+
+# Integração com a Pluggy (Open Finance)
+pluggy:
+  base-url: https://api.pluggy.ai
+  client-id: ${PLUGGY_CLIENT_ID:}
+  client-secret: ${PLUGGY_CLIENT_SECRET:}
+  # A API Key da Pluggy vale 2 horas. Renovamos um pouco antes, por segurança.
+  api-key-duracao: 110m
