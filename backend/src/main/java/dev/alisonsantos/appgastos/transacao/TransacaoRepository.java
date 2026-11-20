@@ -14,6 +14,12 @@ public interface TransacaoRepository extends JpaRepository<Transacao, Long> {
      */
     Optional<Transacao> findByPluggyTransactionId(String pluggyTransactionId);
 
+    /**
+     * Todas as transações de uma conta. Usado na sincronização para
+     * carregar tudo de uma vez, em vez de uma consulta por transação.
+     */
+    List<Transacao> findByContaId(Long contaId);
+
     /** Transações de uma fatura, em ordem cronológica. */
     List<Transacao> findByFaturaIdOrderByDataTransacaoAsc(Long faturaId);
 
