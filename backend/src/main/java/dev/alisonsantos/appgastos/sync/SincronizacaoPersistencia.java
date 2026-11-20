@@ -1,6 +1,7 @@
 package dev.alisonsantos.appgastos.sync;
 
 import dev.alisonsantos.appgastos.cartao.Cartao;
+import dev.alisonsantos.appgastos.classificacao.ClassificadorLancamento;
 import dev.alisonsantos.appgastos.cartao.CartaoRepository;
 import dev.alisonsantos.appgastos.conta.Conta;
 import dev.alisonsantos.appgastos.conta.ContaRepository;
@@ -37,8 +38,9 @@ import java.util.stream.Collectors;
  * estado anterior, sem deixar dados pela metade.
  *
  * REGRA DE OURO: o sync só atualiza o que vem do banco (valor, data,
- * status, cartão, fatura...). Ele NUNCA mexe no que o app define:
- * descrição amigável, pessoa (destino), classificação e observação.
+ * status, cartão, fatura...). Ele NUNCA mexe no que você define:
+ * descrição amigável, pessoa (destino), observação e classificação
+ * corrigida à mão. A classificação automática é refeita a cada sync.
  */
 @Service
 public class SincronizacaoPersistencia {
@@ -49,15 +51,18 @@ public class SincronizacaoPersistencia {
     private final CartaoRepository cartaoRepository;
     private final FaturaRepository faturaRepository;
     private final TransacaoRepository transacaoRepository;
+    private final ClassificadorLancamento classificador;
 
     public SincronizacaoPersistencia(ContaRepository contaRepository,
                                      CartaoRepository cartaoRepository,
                                      FaturaRepository faturaRepository,
-                                     TransacaoRepository transacaoRepository) {
+                                     TransacaoRepository transacaoRepository,
+                                     ClassificadorLancamento classificador) {
         this.contaRepository = contaRepository;
         this.cartaoRepository = cartaoRepository;
         this.faturaRepository = faturaRepository;
         this.transacaoRepository = transacaoRepository;
+        this.classificador = classificador;
     }
 
     // ------------------------------------------------------------------
@@ -194,6 +199,10 @@ public class SincronizacaoPersistencia {
 
             atualizarDadosDoBanco(transacao, transacaoPluggy, conta, contaDeCartao,
                     faturasPorIdPluggy, cartoesPorFinal, resumo);
+
+            // Classifica (compra, estorno, pagamento de fatura...), menos se
+            // você já tiver corrigido a classificação à mão.
+            classificador.aplicar(transacao, conta.getTipo());
         }
 
         transacaoRepository.saveAll(novas);
