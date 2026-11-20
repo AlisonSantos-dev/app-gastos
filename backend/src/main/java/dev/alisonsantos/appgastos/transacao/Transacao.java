@@ -164,6 +164,11 @@ public class Transacao {
     @Column(name = "conta_nos_gastos", nullable = false)
     private boolean contaNosGastos = true;
 
+    /** AUTOMATICA (pelas regras) ou MANUAL (você corrigiu; nunca é sobrescrita). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "origem_classificacao", nullable = false, length = 20)
+    private OrigemClassificacao origemClassificacao = OrigemClassificacao.AUTOMATICA;
+
     @Column(name = "observacao", length = 500)
     private String observacao;
 
@@ -417,16 +422,29 @@ public class Transacao {
         return tipoLancamento;
     }
 
-    public void setTipoLancamento(TipoLancamento tipoLancamento) {
-        this.tipoLancamento = tipoLancamento;
-    }
 
     public boolean isContaNosGastos() {
         return contaNosGastos;
     }
 
-    public void setContaNosGastos(boolean contaNosGastos) {
+    public OrigemClassificacao getOrigemClassificacao() {
+        return origemClassificacao;
+    }
+
+    /**
+     * Define a classificação junto com a origem dela, num método só.
+     * Assim é impossível mudar o tipo e esquecer de registrar quem mudou.
+     */
+    public void definirClassificacao(TipoLancamento tipo, boolean contaNosGastos,
+                                     OrigemClassificacao origem) {
+        this.tipoLancamento = tipo;
         this.contaNosGastos = contaNosGastos;
+        this.origemClassificacao = origem;
+    }
+
+    /** A classificação foi corrigida à mão e não pode ser sobrescrita? */
+    public boolean isClassificacaoManual() {
+        return origemClassificacao == OrigemClassificacao.MANUAL;
     }
 
     public String getObservacao() {
