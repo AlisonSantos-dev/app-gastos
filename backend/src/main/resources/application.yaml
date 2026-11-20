@@ -42,3 +42,5 @@ pluggy:
   client-secret: ${PLUGGY_CLIENT_SECRET:}
   # A API Key da Pluggy vale 2 horas. Renovamos um pouco antes, por segurança.
   api-key-duracao: 110m
+  # Conexões com os bancos (uma por banco), separadas por vírgula no .env
+  item-ids: ${PLUGGY_ITEM_IDS:}
