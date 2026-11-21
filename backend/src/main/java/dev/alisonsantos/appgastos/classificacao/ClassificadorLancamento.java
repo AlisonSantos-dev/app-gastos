@@ -37,9 +37,13 @@ public class ClassificadorLancamento {
             "PGTO FATURA", "PAG FATURA");
 
     // Nomes de bancos emissores de cartão, para reconhecer o pagamento da fatura
-    // feito pela conta corrente (boleto ou débito para o banco do cartão).
+    // feito pela conta corrente (boleto, débito ou Pix para o banco do cartão).
     private static final List<String> BANCOS_EMISSORES = List.of(
-            "SANTANDER", "NU PAGAMENTOS", "NUBANK", "DIGIO", "ITAU");
+            "SANTANDER", "NU PAGAMENTOS", "NUBANK", "DIGIO");
+
+    // Formas de pagamento usadas para pagar uma fatura pela conta corrente
+    private static final List<String> OPERACOES_PAGAMENTO_FATURA = List.of(
+            "CARTAO", "BOLETO", "PIX");
 
     /**
      * Classifica e grava o resultado na transação, a não ser que você
@@ -108,7 +112,10 @@ public class ClassificadorLancamento {
     private Classificacao classificarContaCorrente(Transacao t) {
         String descricao = normalizar(t.getDescricaoBanco());
         String operacao = normalizar(t.getOperacaoPluggy());
-        String outroLado = normalizar(t.getContraparteNome()) + " " + normalizar(t.getMerchantNome());
+        // Quem está do outro lado: o nome da contraparte, do estabelecimento
+        // e a própria descrição (ex.: "PIX ENVIADO Banco Digio S A")
+        String outroLado = normalizar(t.getContraparteNome()) + " "
+                + normalizar(t.getMerchantNome()) + " " + descricao;
 
         // 1. Transferência entre as suas próprias contas. Não é gasto nem recebimento.
         if (CATEGORIA_ID_TRANSFERENCIA_PROPRIA.equals(t.getCategoriaPluggyId())
@@ -117,13 +124,14 @@ public class ClassificadorLancamento {
                     "Conta: transferência entre contas próprias");
         }
 
-        // 2. Pagamento de fatura de cartão feito pela conta corrente.
+        // 2. Pagamento de fatura de cartão feito pela conta corrente
+        //    (boleto, débito ou Pix para o banco do cartão).
         //    Não é gasto: os gastos são as compras dentro da fatura.
         if (t.getTipoMovimento() == TipoMovimento.DEBITO
                 && (CATEGORIA_ID_PAGAMENTO_CARTAO.equals(t.getCategoriaPluggyId())
                 || CATEGORIA_PAGAMENTO_CARTAO.equalsIgnoreCase(nulo(t.getCategoriaPluggy()))
                 || descricao.contains("FATURA")
-                || (("CARTAO".equals(operacao) || "BOLETO".equals(operacao))
+                || (OPERACOES_PAGAMENTO_FATURA.contains(operacao)
                 && contemAlgum(outroLado, BANCOS_EMISSORES)))) {
             return new Classificacao(TipoLancamento.PAGAMENTO_FATURA, false,
                     "Conta: pagamento de fatura de cartão");

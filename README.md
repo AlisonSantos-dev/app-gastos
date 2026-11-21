@@ -30,10 +30,10 @@ flowchart LR
 ```
 
 1. Os bancos compartilham os dados (somente leitura) pelo Open Finance, através da Pluggy.
-2. O backend sincroniza as transações e faturas todos os dias e também recebe um aviso (webhook) quando há transações novas.
-3. Cada compra passa pela identificação em cascata e recebe uma descrição e um destino.
-4. O administrador revisa o que não foi identificado, publica o fechamento do mês e confirma os recebimentos.
-5. Cada membro da família acessa o app e vê só os seus gastos.
+2. O backend sincroniza as contas, os cartões, as faturas e as transações, sem duplicar nada.
+3. Cada lançamento é classificado (compra, estorno, pagamento de fatura, tarifa, transferência própria, recebimento), e o que não é gasto sai dos totais.
+4. A soma dos gastos de cada fatura é conferida contra o total oficial do banco.
+5. Nas próximas fases: identificação e destino de cada compra, fechamento do mês e acesso da família.
 
 Mais detalhes em [Arquitetura e decisões](docs/arquitetura.md).
 
@@ -41,7 +41,8 @@ Mais detalhes em [Arquitetura e decisões](docs/arquitetura.md).
 
 | Camada | Tecnologias |
 |---|---|
-| Backend | Java 21, Spring Boot 4, Spring Data JPA, Spring Security, PostgreSQL 17, Flyway |
+| Backend | Java 21, Spring Boot 4, Spring Data JPA, PostgreSQL 17, Flyway |
+| Testes | JUnit 5, AssertJ |
 | Frontend | Angular (PWA), Tailwind CSS |
 | Integração | Open Finance via Pluggy |
 | Infra | Docker, Docker Compose, Caddy, GitHub Actions, VPS Linux |
@@ -52,6 +53,7 @@ Mais detalhes em [Arquitetura e decisões](docs/arquitetura.md).
 
 - Java 21
 - Docker e Docker Compose
+- Uma aplicação na [Pluggy](https://dashboard.pluggy.ai) com os bancos conectados
 
 ### Passo a passo
 
@@ -62,7 +64,7 @@ Mais detalhes em [Arquitetura e decisões](docs/arquitetura.md).
    cd app-gastos
    ```
 
-2. Crie o arquivo de variáveis de ambiente a partir do modelo e defina uma senha para o banco:
+2. Crie o arquivo de variáveis de ambiente a partir do modelo e preencha os valores (senha do banco, credenciais e ids dos bancos na Pluggy):
 
    ```bash
    cp .env.example .env
@@ -85,9 +87,35 @@ Mais detalhes em [Arquitetura e decisões](docs/arquitetura.md).
 
    > No Windows (PowerShell): `.\mvnw spring-boot:run`
 
-5. Confira se está tudo no ar em [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health). O status deve ser `UP`, inclusive o do banco (`db`).
+5. Confira se está tudo no ar em [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health).
+
+6. Faça a primeira sincronização:
+
+   ```bash
+   curl -X POST http://localhost:8080/api/sync
+   ```
 
 > Se a porta `5432` já estiver em uso na sua máquina, troque o valor de `DB_PORT` no `.env`.
+
+### Testes
+
+```bash
+cd backend
+./mvnw test
+```
+
+## Endpoints
+
+| Método | Caminho | O que faz |
+|---|---|---|
+| `POST` | `/api/sync` | Sincroniza contas, cartões, faturas e transações com a Pluggy |
+| `POST` | `/api/classificacao/reclassificar` | Reaplica as regras de classificação (preserva as manuais) |
+| `GET` | `/api/contas` | Contas com os seus cartões |
+| `GET` | `/api/faturas?contaId=` | Faturas de um cartão, conciliadas com o total oficial |
+| `GET` | `/api/transacoes` | Transações com filtros e paginação |
+| `GET` | `/api/pluggy/status` | Status da conexão com a Pluggy |
+
+Filtros de `/api/transacoes`: `contaId`, `cartao`, `faturaId`, `tipo`, `somenteGastos`, `de`, `ate`, `texto`, `pagina` e `tamanho`.
 
 ## Estrutura do repositório
 
@@ -103,7 +131,7 @@ app-gastos/
 ## Roteiro
 
 - [x] **Fase 0:** Fundação (repositório, projeto e ambiente local)
-- [ ] **Fase 1:** Modelo de dados e integração com o Open Finance · `v0.1.0`
+- [x] **Fase 1:** Modelo de dados e integração com o Open Finance · `v0.1.0`
 - [ ] **Fase 2:** Identificação das compras · `v0.2.0`
 - [ ] **Fase 3:** Divisões, contas fixas e fechamento do mês · `v0.3.0`
 - [ ] **Fase 4:** Usuários, perfis e segurança · `v0.4.0`
@@ -114,4 +142,4 @@ app-gastos/
 
 ## Privacidade
 
-Este repositório não contém dados reais. Todos os exemplos usam dados fictícios, e as credenciais ficam fora do controle de versão.
+Este repositório não contém dados reais. Todos os exemplos usam dados fictícios, e as credenciais ficam fora do controle de versão. Dados de terceiros presentes nos pagamentos (documento e conta bancária) não são armazenados.
