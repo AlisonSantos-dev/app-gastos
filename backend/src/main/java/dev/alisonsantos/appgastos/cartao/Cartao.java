@@ -11,12 +11,18 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Um cartão (físico, virtual ou adicional) de uma conta de cartão de crédito.
@@ -64,6 +70,22 @@ public class Cartao {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private StatusCartao status = StatusCartao.PENDENTE;
+
+    /**
+     * Quem pode ter usado o cartão, quando o modo é PERGUNTAR.
+     * Ex.: o virtual usado no Uber de duas pessoas: [Marlene, Nelson].
+     * Na caixa de entrada, essas pessoas aparecem como botões rápidos.
+     *
+     * @ManyToMany: um cartão tem várias pessoas candidatas, e uma pessoa
+     * pode ser candidata em vários cartões. A ligação fica na tabela
+     * cartao_candidato (criada pela migration V4).
+     */
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "cartao_candidato",
+            joinColumns = @JoinColumn(name = "cartao_id"),
+            inverseJoinColumns = @JoinColumn(name = "pessoa_id"))
+    private Set<Pessoa> candidatos = new HashSet<>();
 
     @Column(name = "criado_em", nullable = false, updatable = false)
     private Instant criadoEm;
@@ -146,6 +168,17 @@ public class Cartao {
 
     public void setDonoPadrao(Pessoa donoPadrao) {
         this.donoPadrao = donoPadrao;
+    }
+
+    /** Somente leitura: para alterar, use definirCandidatos(...). */
+    public Set<Pessoa> getCandidatos() {
+        return Collections.unmodifiableSet(candidatos);
+    }
+
+    /** Troca toda a lista de candidatos de uma vez. */
+    public void definirCandidatos(Collection<Pessoa> pessoas) {
+        candidatos.clear();
+        candidatos.addAll(pessoas);
     }
 
     public StatusCartao getStatus() {
