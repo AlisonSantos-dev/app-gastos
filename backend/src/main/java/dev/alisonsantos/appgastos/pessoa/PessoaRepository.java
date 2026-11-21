@@ -17,4 +17,10 @@ public interface PessoaRepository extends JpaRepository<Pessoa, Long> {
 
     /** SELECT * FROM pessoa WHERE ativo = true ORDER BY nome ASC */
     List<Pessoa> findByAtivoTrueOrderByNomeAsc();
+
+    /** Já existe alguém com esse nome? (sem diferenciar maiúsculas) */
+    boolean existsByNomeIgnoreCase(String nome);
+
+    /** Já existe OUTRA pessoa com esse nome? Usado na edição. */
+    boolean existsByNomeIgnoreCaseAndIdNot(String nome, Long id);
 }
