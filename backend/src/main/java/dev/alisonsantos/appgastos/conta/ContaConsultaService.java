@@ -2,6 +2,7 @@ package dev.alisonsantos.appgastos.conta;
 
 import dev.alisonsantos.appgastos.cartao.Cartao;
 import dev.alisonsantos.appgastos.cartao.CartaoRepository;
+import dev.alisonsantos.appgastos.comum.RecursoNaoEncontradoException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,17 +35,32 @@ public class ContaConsultaService {
                 .collect(Collectors.groupingBy(cartao -> cartao.getConta().getId()));
 
         return contaRepository.findAll(Sort.by("banco", "nome")).stream()
-                .map(conta -> new ContaResponse(
-                        conta.getId(),
-                        conta.getBanco(),
-                        conta.getNome(),
-                        conta.getTipo().name(),
-                        conta.isAtiva(),
-                        cartoesPorConta.getOrDefault(conta.getId(), List.of()).stream()
-                                .sorted(Comparator.comparing(Cartao::getUltimosDigitos))
-                                .map(this::resumir)
-                                .toList()))
+                .map(conta -> montar(conta, cartoesPorConta.getOrDefault(conta.getId(), List.of())))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ContaResponse buscar(Long id) {
+        Conta conta = contaRepository.findById(id)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Conta", id));
+        List<Cartao> cartoes = cartaoRepository.findAll().stream()
+                .filter(cartao -> cartao.getConta().getId().equals(id))
+                .toList();
+        return montar(conta, cartoes);
+    }
+
+    private ContaResponse montar(Conta conta, List<Cartao> cartoes) {
+        return new ContaResponse(
+                conta.getId(),
+                conta.getBanco(),
+                conta.getNome(),
+                conta.getTipo().name(),
+                conta.isAtiva(),
+                conta.getDonoPadrao() == null ? null : conta.getDonoPadrao().getNome(),
+                cartoes.stream()
+                        .sorted(Comparator.comparing(Cartao::getUltimosDigitos))
+                        .map(this::resumir)
+                        .toList());
     }
 
     private ContaResponse.CartaoResumo resumir(Cartao cartao) {
@@ -54,6 +70,7 @@ public class ContaConsultaService {
                 cartao.getApelido(),
                 cartao.getTipo() == null ? null : cartao.getTipo().name(),
                 cartao.getModoDono().name(),
+                cartao.getDonoPadrao() == null ? null : cartao.getDonoPadrao().getNome(),
                 cartao.getStatus().name());
     }
 }

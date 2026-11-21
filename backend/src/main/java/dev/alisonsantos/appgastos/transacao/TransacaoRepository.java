@@ -30,6 +30,12 @@ public interface TransacaoRepository extends JpaRepository<Transacao, Long>,
      */
     List<Transacao> findByContaId(Long contaId);
 
+    /** Todas as transações de um cartão. Usado para reaplicar o dono quando ele muda. */
+    List<Transacao> findByCartaoId(Long cartaoId);
+
+    /** As transações de uma conta que não têm cartão (ex.: débitos da conta corrente). */
+    List<Transacao> findByContaIdAndCartaoIsNull(Long contaId);
+
     /** Transações de uma fatura, em ordem cronológica. */
     List<Transacao> findByFaturaIdOrderByDataTransacaoAsc(Long faturaId);
 

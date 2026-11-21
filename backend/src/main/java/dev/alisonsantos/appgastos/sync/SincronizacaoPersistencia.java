@@ -6,6 +6,7 @@ import dev.alisonsantos.appgastos.cartao.CartaoRepository;
 import dev.alisonsantos.appgastos.conta.Conta;
 import dev.alisonsantos.appgastos.conta.ContaRepository;
 import dev.alisonsantos.appgastos.conta.TipoConta;
+import dev.alisonsantos.appgastos.destino.DestinoPadrao;
 import dev.alisonsantos.appgastos.fatura.Fatura;
 import dev.alisonsantos.appgastos.fatura.FaturaRepository;
 import dev.alisonsantos.appgastos.fatura.StatusFatura;
@@ -52,17 +53,20 @@ public class SincronizacaoPersistencia {
     private final FaturaRepository faturaRepository;
     private final TransacaoRepository transacaoRepository;
     private final ClassificadorLancamento classificador;
+    private final DestinoPadrao destinoPadrao;
 
     public SincronizacaoPersistencia(ContaRepository contaRepository,
                                      CartaoRepository cartaoRepository,
                                      FaturaRepository faturaRepository,
                                      TransacaoRepository transacaoRepository,
-                                     ClassificadorLancamento classificador) {
+                                     ClassificadorLancamento classificador,
+                                     DestinoPadrao destinoPadrao) {
         this.contaRepository = contaRepository;
         this.cartaoRepository = cartaoRepository;
         this.faturaRepository = faturaRepository;
         this.transacaoRepository = transacaoRepository;
         this.classificador = classificador;
+        this.destinoPadrao = destinoPadrao;
     }
 
     // ------------------------------------------------------------------
@@ -203,6 +207,10 @@ public class SincronizacaoPersistencia {
             // Classifica (compra, estorno, pagamento de fatura...), menos se
             // você já tiver corrigido a classificação à mão.
             classificador.aplicar(transacao, conta.getTipo());
+
+            // Define o dono pelo cartão (ou pela conta), menos se você
+            // já tiver escolhido à mão ou uma regra tiver decidido.
+            destinoPadrao.aplicar(transacao);
         }
 
         transacaoRepository.saveAll(novas);
