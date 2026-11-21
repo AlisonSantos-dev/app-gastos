@@ -14,6 +14,7 @@ import java.util.Objects;
  *
  * Respeita a cascata de quem manda em cada atributo:
  *   - Descrição: MANUAL > REGRA > BANCO
+ *   - Categoria: MANUAL > REGRA
  *   - Pessoa:    MANUAL > REGRA > CARTÃO / CONTA (o DestinoPadrao, que roda depois)
  *
  * E se uma regra deixar de valer (foi desativada ou mudou), o que ela
@@ -53,11 +54,14 @@ public class AplicadorLegenda {
         }
 
         // ---------------- Categoria ----------------
-        String novaCategoria = resultado.regraCategoria() == null ? null
-                : resultado.regraCategoria().getCategoria();
-        if (!Objects.equals(novaCategoria, transacao.getCategoria())) {
-            transacao.setCategoria(novaCategoria);
-            mudou = true;
+        // A categoria editada à mão nunca é tocada
+        if (!transacao.isCategoriaManual()) {
+            String novaCategoria = resultado.regraCategoria() == null ? null
+                    : resultado.regraCategoria().getCategoria();
+            if (!Objects.equals(novaCategoria, transacao.getCategoria())) {
+                transacao.setCategoria(novaCategoria);
+                mudou = true;
+            }
         }
 
         // ---------------- Pessoa ----------------

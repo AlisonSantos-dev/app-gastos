@@ -27,13 +27,16 @@ public record TransacaoResponse(
         String pessoa,
         String origemPessoa,
         String categoria,
+        boolean categoriaManual,
+        String origemClassificacao,
         Long regraId,
         String conta,
         String cartao,
         String parcela,
         LocalDate faturaVencimento,
         String categoriaPluggy,
-        String estabelecimento
+        String estabelecimento,
+        String observacao
 ) {
 
     public static TransacaoResponse de(Transacao t) {
@@ -53,12 +56,15 @@ public record TransacaoResponse(
                 t.getPessoa() == null ? null : t.getPessoa().getNome(),
                 t.getOrigemPessoa() == null ? null : t.getOrigemPessoa().name(),
                 t.getCategoria(),
+                t.isCategoriaManual(),
+                t.getOrigemClassificacao().name(),
                 t.getRegra() == null ? null : t.getRegra().getId(),
                 t.getConta().getNome(),
                 t.getCartao() == null ? null : t.getCartao().getUltimosDigitos(),
                 parcela,
                 t.getFatura() == null ? null : t.getFatura().getDataVencimento(),
                 t.getCategoriaPluggy(),
-                t.getMerchantNome());
+                t.getMerchantNome(),
+                t.getObservacao());
     }
 }
