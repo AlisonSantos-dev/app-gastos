@@ -3,6 +3,7 @@ package dev.alisonsantos.appgastos.transacao;
 import dev.alisonsantos.appgastos.cartao.Cartao;
 import dev.alisonsantos.appgastos.conta.Conta;
 import dev.alisonsantos.appgastos.fatura.Fatura;
+import dev.alisonsantos.appgastos.legenda.Regra;
 import dev.alisonsantos.appgastos.pessoa.Pessoa;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -122,6 +123,19 @@ public class Transacao {
     @Enumerated(EnumType.STRING)
     @Column(name = "origem_pessoa", length = 20)
     private OrigemPessoa origemPessoa;
+
+    // ------------------------------------------------------------------
+    // Legenda
+    // ------------------------------------------------------------------
+
+    /** A regra da legenda que identificou a transação (vazio se nenhuma). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "regra_id")
+    private Regra regra;
+
+    /** Categoria definida pelo app (pela legenda), em português. */
+    @Column(name = "categoria", length = 60)
+    private String categoria;
 
     // ------------------------------------------------------------------
     // Dados do estabelecimento e da operação (vindos da Pluggy)
@@ -360,6 +374,22 @@ public class Transacao {
     public void definirPessoa(Pessoa pessoa, OrigemPessoa origem) {
         this.pessoa = pessoa;
         this.origemPessoa = origem;
+    }
+
+    public Regra getRegra() {
+        return regra;
+    }
+
+    public void setRegra(Regra regra) {
+        this.regra = regra;
+    }
+
+    public String getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(String categoria) {
+        this.categoria = categoria;
     }
 
     public String getCategoriaPluggy() {
