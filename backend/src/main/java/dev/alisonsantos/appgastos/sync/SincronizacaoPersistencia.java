@@ -10,6 +10,9 @@ import dev.alisonsantos.appgastos.destino.DestinoPadrao;
 import dev.alisonsantos.appgastos.fatura.Fatura;
 import dev.alisonsantos.appgastos.fatura.FaturaRepository;
 import dev.alisonsantos.appgastos.fatura.StatusFatura;
+import dev.alisonsantos.appgastos.legenda.AplicadorLegenda;
+import dev.alisonsantos.appgastos.legenda.Regra;
+import dev.alisonsantos.appgastos.legenda.RegraRepository;
 import dev.alisonsantos.appgastos.pluggy.dto.PluggyAccount;
 import dev.alisonsantos.appgastos.pluggy.dto.PluggyBill;
 import dev.alisonsantos.appgastos.pluggy.dto.PluggyCreditCardMetadata;
@@ -54,19 +57,25 @@ public class SincronizacaoPersistencia {
     private final TransacaoRepository transacaoRepository;
     private final ClassificadorLancamento classificador;
     private final DestinoPadrao destinoPadrao;
+    private final RegraRepository regraRepository;
+    private final AplicadorLegenda aplicadorLegenda;
 
     public SincronizacaoPersistencia(ContaRepository contaRepository,
                                      CartaoRepository cartaoRepository,
                                      FaturaRepository faturaRepository,
                                      TransacaoRepository transacaoRepository,
                                      ClassificadorLancamento classificador,
-                                     DestinoPadrao destinoPadrao) {
+                                     DestinoPadrao destinoPadrao,
+                                     RegraRepository regraRepository,
+                                     AplicadorLegenda aplicadorLegenda) {
         this.contaRepository = contaRepository;
         this.cartaoRepository = cartaoRepository;
         this.faturaRepository = faturaRepository;
         this.transacaoRepository = transacaoRepository;
         this.classificador = classificador;
         this.destinoPadrao = destinoPadrao;
+        this.regraRepository = regraRepository;
+        this.aplicadorLegenda = aplicadorLegenda;
     }
 
     // ------------------------------------------------------------------
@@ -169,6 +178,9 @@ public class SincronizacaoPersistencia {
                 .filter(fatura -> fatura.getPluggyBillId() != null)
                 .collect(Collectors.toMap(Fatura::getPluggyBillId, Function.identity()));
 
+        // As regras da legenda, carregadas uma vez só para a conta inteira
+        List<Regra> regras = regraRepository.findByAtivaTrue();
+
         Map<String, Cartao> cartoesPorFinal = new HashMap<>();
         Set<String> idsRecebidos = new HashSet<>();
         List<Transacao> novas = new ArrayList<>();
@@ -208,8 +220,11 @@ public class SincronizacaoPersistencia {
             // você já tiver corrigido a classificação à mão.
             classificador.aplicar(transacao, conta.getTipo());
 
-            // Define o dono pelo cartão (ou pela conta), menos se você
-            // já tiver escolhido à mão ou uma regra tiver decidido.
+            // Legenda: nome, categoria e, se a regra disser, o dono.
+            aplicadorLegenda.aplicar(transacao, regras);
+
+            // Dono pelo cartão (ou pela conta), menos se você já tiver
+            // escolhido à mão ou uma regra tiver decidido.
             destinoPadrao.aplicar(transacao);
         }
 
