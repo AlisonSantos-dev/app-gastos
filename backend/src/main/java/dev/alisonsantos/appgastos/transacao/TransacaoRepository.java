@@ -6,6 +6,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
@@ -35,6 +37,26 @@ public interface TransacaoRepository extends JpaRepository<Transacao, Long>,
 
     /** As transações de uma conta que não têm cartão (ex.: débitos da conta corrente). */
     List<Transacao> findByContaIdAndCartaoIsNull(Long contaId);
+
+    /**
+     * Todas as parcelas de uma mesma compra.
+     *
+     * A Pluggy não manda um "id da compra", então as parcelas são
+     * reconhecidas pelo que elas têm em comum: o mesmo cartão, a mesma
+     * data da compra, o mesmo número de parcelas e a mesma descrição.
+     */
+    @Query("""
+            SELECT t FROM Transacao t
+            WHERE t.cartao.id = :cartaoId
+              AND t.dataCompra = :dataCompra
+              AND t.parcelaTotal = :parcelaTotal
+              AND t.descricaoBanco = :descricaoBanco
+            ORDER BY t.parcelaNumero
+            """)
+    List<Transacao> findParcelasDaMesmaCompra(@Param("cartaoId") Long cartaoId,
+                                              @Param("dataCompra") Instant dataCompra,
+                                              @Param("parcelaTotal") Short parcelaTotal,
+                                              @Param("descricaoBanco") String descricaoBanco);
 
     /** Transações de uma fatura, em ordem cronológica. */
     List<Transacao> findByFaturaIdOrderByDataTransacaoAsc(Long faturaId);

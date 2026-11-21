@@ -7,6 +7,7 @@ import dev.alisonsantos.appgastos.conta.Conta;
 import dev.alisonsantos.appgastos.conta.ContaRepository;
 import dev.alisonsantos.appgastos.conta.TipoConta;
 import dev.alisonsantos.appgastos.destino.DestinoPadrao;
+import dev.alisonsantos.appgastos.edicao.PropagadorParcelas;
 import dev.alisonsantos.appgastos.fatura.Fatura;
 import dev.alisonsantos.appgastos.fatura.FaturaRepository;
 import dev.alisonsantos.appgastos.fatura.StatusFatura;
@@ -59,6 +60,7 @@ public class SincronizacaoPersistencia {
     private final DestinoPadrao destinoPadrao;
     private final RegraRepository regraRepository;
     private final AplicadorLegenda aplicadorLegenda;
+    private final PropagadorParcelas propagadorParcelas;
 
     public SincronizacaoPersistencia(ContaRepository contaRepository,
                                      CartaoRepository cartaoRepository,
@@ -67,7 +69,8 @@ public class SincronizacaoPersistencia {
                                      ClassificadorLancamento classificador,
                                      DestinoPadrao destinoPadrao,
                                      RegraRepository regraRepository,
-                                     AplicadorLegenda aplicadorLegenda) {
+                                     AplicadorLegenda aplicadorLegenda,
+                                     PropagadorParcelas propagadorParcelas) {
         this.contaRepository = contaRepository;
         this.cartaoRepository = cartaoRepository;
         this.faturaRepository = faturaRepository;
@@ -76,6 +79,7 @@ public class SincronizacaoPersistencia {
         this.destinoPadrao = destinoPadrao;
         this.regraRepository = regraRepository;
         this.aplicadorLegenda = aplicadorLegenda;
+        this.propagadorParcelas = propagadorParcelas;
     }
 
     // ------------------------------------------------------------------
@@ -215,6 +219,12 @@ public class SincronizacaoPersistencia {
 
             atualizarDadosDoBanco(transacao, transacaoPluggy, conta, contaDeCartao,
                     faturasPorIdPluggy, cartoesPorFinal, resumo);
+
+            // Parcela nova de uma compra que você já editou? Ela herda as
+            // suas edições (descrição, dono, categoria...), como as irmãs.
+            if (transacao.getId() == null) {
+                propagadorParcelas.herdarEdicoes(transacao);
+            }
 
             // Classifica (compra, estorno, pagamento de fatura...), menos se
             // você já tiver corrigido a classificação à mão.

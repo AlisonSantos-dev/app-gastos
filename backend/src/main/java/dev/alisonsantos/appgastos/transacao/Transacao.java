@@ -137,6 +137,10 @@ public class Transacao {
     @Column(name = "categoria", length = 60)
     private String categoria;
 
+    /** A categoria foi definida à mão? Se sim, a legenda não sobrescreve. */
+    @Column(name = "categoria_manual", nullable = false)
+    private boolean categoriaManual;
+
     // ------------------------------------------------------------------
     // Dados do estabelecimento e da operação (vindos da Pluggy)
     // ------------------------------------------------------------------
@@ -390,6 +394,23 @@ public class Transacao {
 
     public void setCategoria(String categoria) {
         this.categoria = categoria;
+    }
+
+    public boolean isCategoriaManual() {
+        return categoriaManual;
+    }
+
+    /** Define a categoria à mão (true) ou devolve o controle para a legenda (false). */
+    public void setCategoriaManual(boolean categoriaManual) {
+        this.categoriaManual = categoriaManual;
+    }
+
+    /** Alguma coisa nesta transação foi editada à mão? */
+    public boolean temEdicaoManual() {
+        return origemDescricao == OrigemDescricao.MANUAL
+                || origemPessoa == OrigemPessoa.MANUAL
+                || categoriaManual
+                || isClassificacaoManual();
     }
 
     public String getCategoriaPluggy() {
