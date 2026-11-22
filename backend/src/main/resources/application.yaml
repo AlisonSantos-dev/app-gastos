@@ -23,6 +23,13 @@ spring:
   flyway:
     enabled: true
 
+  # Upload de arquivos (a planilha de gastos tem pouco mais de 1 MB;
+  # o padrão do Spring é 1 MB, por isso o limite foi aumentado)
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
 server:
   port: 8080
 
