@@ -52,12 +52,30 @@ public class RegraService {
 
     @Transactional
     public RegraResponse criar(RegraRequest pedido) {
-        Regra regra = new Regra(pedido.tipoChave(), pedido.valorChave());
-        preencherEValidar(regra, pedido);
-        regraRepository.save(regra);
-
+        Regra regra = criarSemReaplicar(pedido);
         legendaService.reaplicarTodas();
         return RegraResponse.de(regra, usosPorRegra().getOrDefault(regra.getId(), 0L));
+    }
+
+    /**
+     * Cria várias regras de uma vez e reaplica a legenda UMA vez só no final.
+     * Usado pelo importador da planilha: reaplicar a cada regra seria lento.
+     */
+    @Transactional
+    public List<RegraResponse> criarVarias(List<RegraRequest> pedidos) {
+        List<Regra> criadas = pedidos.stream().map(this::criarSemReaplicar).toList();
+        legendaService.reaplicarTodas();
+
+        Map<Long, Long> usos = usosPorRegra();
+        return criadas.stream()
+                .map(regra -> RegraResponse.de(regra, usos.getOrDefault(regra.getId(), 0L)))
+                .toList();
+    }
+
+    private Regra criarSemReaplicar(RegraRequest pedido) {
+        Regra regra = new Regra(pedido.tipoChave(), pedido.valorChave());
+        preencherEValidar(regra, pedido);
+        return regraRepository.save(regra);
     }
 
     @Transactional
