@@ -52,7 +52,7 @@ public class PropagadorParcelas {
 
     /**
      * Usado pelo sync quando chega uma parcela nova: se alguma irmã já foi
-     * editada à mão, a nova copia as edições dela.
+     * editada à mão (ou revisada), a nova copia as edições dela.
      */
     public void herdarEdicoes(Transacao nova) {
         if (!podeAgrupar(nova)) {
@@ -64,7 +64,7 @@ public class PropagadorParcelas {
                         nova.getParcelaTotal(),
                         nova.getDescricaoBanco())
                 .stream()
-                .filter(irma -> irma != nova && irma.temEdicaoManual())
+                .filter(irma -> irma != nova && (irma.temEdicaoManual() || irma.isRevisada()))
                 // A edição mais recente é a que vale
                 .max(Comparator.comparing(Transacao::getAtualizadoEm,
                         Comparator.nullsFirst(Comparator.naturalOrder())));
@@ -93,6 +93,10 @@ public class PropagadorParcelas {
         }
         if (destino.getObservacao() == null && origem.getObservacao() != null) {
             destino.setObservacao(origem.getObservacao());
+        }
+        // Compra já revisada: a parcela nova também não precisa de revisão
+        if (origem.isRevisada()) {
+            destino.marcarRevisada();
         }
     }
 

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -57,6 +58,24 @@ public interface TransacaoRepository extends JpaRepository<Transacao, Long>,
                                               @Param("dataCompra") Instant dataCompra,
                                               @Param("parcelaTotal") Short parcelaTotal,
                                               @Param("descricaoBanco") String descricaoBanco);
+
+    /**
+     * Marca como revisados, de uma vez, todos os gastos anteriores a uma data.
+     * É a "limpeza do histórico": o que você já conferiu na planilha
+     * não precisa passar pela caixa de entrada.
+     *
+     * @Modifying: é um UPDATE, e não um SELECT. Ele roda direto no banco,
+     * sem carregar as transações na memória (bem mais rápido para milhares).
+     */
+    @Modifying
+    @Query("""
+            UPDATE Transacao t
+            SET t.revisada = true, t.revisadaEm = :agora
+            WHERE t.revisada = false
+              AND t.contaNosGastos = true
+              AND t.dataTransacao < :limite
+            """)
+    int marcarRevisadasAntesDe(@Param("limite") Instant limite, @Param("agora") Instant agora);
 
     /** Transações de uma fatura, em ordem cronológica. */
     List<Transacao> findByFaturaIdOrderByDataTransacaoAsc(Long faturaId);

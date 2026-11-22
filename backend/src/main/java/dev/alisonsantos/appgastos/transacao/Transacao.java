@@ -190,6 +190,17 @@ public class Transacao {
     @Column(name = "observacao", length = 500)
     private String observacao;
 
+    // ------------------------------------------------------------------
+    // Revisão (caixa de entrada)
+    // ------------------------------------------------------------------
+
+    /** Você já revisou esta compra? Se sim, ela sai da caixa de entrada. */
+    @Column(name = "revisada", nullable = false)
+    private boolean revisada;
+
+    @Column(name = "revisada_em")
+    private Instant revisadaEm;
+
     @Column(name = "criado_em", nullable = false, updatable = false)
     private Instant criadoEm;
 
@@ -403,6 +414,22 @@ public class Transacao {
     /** Define a categoria à mão (true) ou devolve o controle para a legenda (false). */
     public void setCategoriaManual(boolean categoriaManual) {
         this.categoriaManual = categoriaManual;
+    }
+
+    public boolean isRevisada() {
+        return revisada;
+    }
+
+    public Instant getRevisadaEm() {
+        return revisadaEm;
+    }
+
+    /** Marca como revisada (sai da caixa de entrada). Não muda a data se já estava. */
+    public void marcarRevisada() {
+        if (!revisada) {
+            this.revisada = true;
+            this.revisadaEm = Instant.now();
+        }
     }
 
     /** Alguma coisa nesta transação foi editada à mão? */
