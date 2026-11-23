@@ -2,6 +2,8 @@ package dev.alisonsantos.appgastos.legenda;
 
 import dev.alisonsantos.appgastos.comum.RecursoNaoEncontradoException;
 import dev.alisonsantos.appgastos.comum.RegraNegocioException;
+import dev.alisonsantos.appgastos.divisao.DivisaoSalva;
+import dev.alisonsantos.appgastos.divisao.DivisaoSalvaRepository;
 import dev.alisonsantos.appgastos.pessoa.Pessoa;
 import dev.alisonsantos.appgastos.pessoa.PessoaService;
 import org.springframework.stereotype.Service;
@@ -28,12 +30,14 @@ public class RegraService {
     private final RegraRepository regraRepository;
     private final PessoaService pessoaService;
     private final LegendaService legendaService;
+    private final DivisaoSalvaRepository divisaoSalvaRepository;
 
     public RegraService(RegraRepository regraRepository, PessoaService pessoaService,
-                        LegendaService legendaService) {
+                        LegendaService legendaService, DivisaoSalvaRepository divisaoSalvaRepository) {
         this.regraRepository = regraRepository;
         this.pessoaService = pessoaService;
         this.legendaService = legendaService;
+        this.divisaoSalvaRepository = divisaoSalvaRepository;
     }
 
     @Transactional(readOnly = true)
@@ -106,14 +110,19 @@ public class RegraService {
         String descricao = textoOuNulo(pedido.descricao());
         String categoria = textoOuNulo(pedido.categoria());
         Pessoa pessoa = pedido.pessoaId() == null ? null : pessoaAtiva(pedido.pessoaId());
+        DivisaoSalva divisao = pedido.divisaoSalvaId() == null ? null : divisaoAtiva(pedido.divisaoSalvaId());
 
         validarValorDaChave(regra);
 
-        if (descricao == null && categoria == null && pessoa == null) {
+        if (descricao == null && categoria == null && pessoa == null && divisao == null) {
             throw new RegraNegocioException(
-                    "A regra precisa definir pelo menos uma coisa: descricao, categoria ou pessoaId.");
+                    "A regra precisa definir pelo menos uma coisa: descricao, categoria, pessoaId ou divisaoSalvaId.");
         }
-        if (regra.getTipoChave() == TipoChave.MCC && (descricao != null || pessoa != null)) {
+        if (pessoa != null && divisao != null) {
+            throw new RegraNegocioException(
+                    "Informe pessoaId OU divisaoSalvaId: a regra dá um dono ou divide a compra, não os dois.");
+        }
+        if (regra.getTipoChave() == TipoChave.MCC && (descricao != null || pessoa != null || divisao != null)) {
             throw new RegraNegocioException(
                     "Regras de MCC só definem a categoria: o MCC é amplo demais para dar nome ou dono.");
         }
@@ -126,6 +135,7 @@ public class RegraService {
         regra.setDescricao(descricao);
         regra.setCategoria(categoria);
         regra.setPessoa(pessoa);
+        regra.setDivisaoSalva(divisao);
         regra.setPrioridade(pedido.prioridade() == null ? 0 : pedido.prioridade());
         regra.definirVigencia(pedido.vigenciaInicio(), pedido.vigenciaFim());
 
@@ -184,6 +194,15 @@ public class RegraService {
             throw new RegraNegocioException("A pessoa \"" + pessoa.getNome() + "\" está desativada.");
         }
         return pessoa;
+    }
+
+    private DivisaoSalva divisaoAtiva(Long id) {
+        DivisaoSalva divisao = divisaoSalvaRepository.findById(id)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Divisão salva", id));
+        if (!divisao.isAtiva()) {
+            throw new RegraNegocioException("A divisão \"" + divisao.getNome() + "\" está desativada.");
+        }
+        return divisao;
     }
 
     private Map<Long, Long> usosPorRegra() {

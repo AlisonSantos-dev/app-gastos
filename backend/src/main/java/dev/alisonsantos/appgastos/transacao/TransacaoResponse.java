@@ -3,6 +3,7 @@ package dev.alisonsantos.appgastos.transacao;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Uma transação como a API devolve para o front.
@@ -26,6 +27,7 @@ public record TransacaoResponse(
         boolean contaNosGastos,
         String pessoa,
         String origemPessoa,
+        List<ParteDivisaoResponse> divisao,
         String categoria,
         boolean categoriaManual,
         String origemClassificacao,
@@ -38,6 +40,10 @@ public record TransacaoResponse(
         String estabelecimento,
         String observacao
 ) {
+
+    /** Uma parte da divisão: quem e quanto. */
+    public record ParteDivisaoResponse(Long pessoaId, String pessoa, BigDecimal valor, BigDecimal percentual) {
+    }
 
     public static TransacaoResponse de(Transacao t) {
         String parcela = t.getParcelaTotal() == null ? null
@@ -55,6 +61,10 @@ public record TransacaoResponse(
                 t.isContaNosGastos(),
                 t.getPessoa() == null ? null : t.getPessoa().getNome(),
                 t.getOrigemPessoa() == null ? null : t.getOrigemPessoa().name(),
+                t.getRateios().stream()
+                        .map(r -> new ParteDivisaoResponse(r.getPessoa().getId(), r.getPessoa().getNome(),
+                                r.getValor(), r.getPercentual()))
+                        .toList(),
                 t.getCategoria(),
                 t.isCategoriaManual(),
                 t.getOrigemClassificacao().name(),

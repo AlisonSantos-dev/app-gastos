@@ -14,9 +14,9 @@ import java.util.Objects;
  * a partir do cartão ou da conta.
  *
  * É o primeiro degrau da cascata de destino:
- *   MANUAL (você escolheu)  >  REGRA (Etapa 11)  >  CARTÃO / CONTA (aqui)
+ *   MANUAL ou DIVISÃO (você escolheu)  >  REGRA  >  CARTÃO / CONTA (aqui)
  *
- * Por isso, se a transação já tiver um destino MANUAL ou de REGRA,
+ * Por isso, se a transação já tiver um destino MANUAL, de DIVISÃO ou de REGRA,
  * nada é alterado.
  */
 @Component
@@ -27,7 +27,8 @@ public class DestinoPadrao {
      */
     public boolean aplicar(Transacao transacao) {
         OrigemPessoa origemAtual = transacao.getOrigemPessoa();
-        if (origemAtual == OrigemPessoa.MANUAL || origemAtual == OrigemPessoa.REGRA) {
+        if (origemAtual == OrigemPessoa.MANUAL || origemAtual == OrigemPessoa.REGRA
+                || origemAtual == OrigemPessoa.DIVISAO) {
             return false;
         }
 

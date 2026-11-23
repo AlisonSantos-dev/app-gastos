@@ -168,7 +168,7 @@ public class ImportacaoService {
 
     private RegraRequest paraRegra(SugestaoRegra s, String descricao, String categoria, Long pessoaId) {
         return new RegraRequest(TipoChave.DESCRICAO_CONTEM, s.getValorChave(), null,
-                descricao, categoria, pessoaId, null, null, null);
+                descricao, categoria, pessoaId, null, null, null, null);
     }
 
     private Pessoa donoSugerido(SugestaoCalculada calculada, Map<SecaoPlanilha, Pessoa> pessoas) {

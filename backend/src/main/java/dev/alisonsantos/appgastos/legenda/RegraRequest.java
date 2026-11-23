@@ -18,6 +18,9 @@ import java.time.LocalDate;
  *
  *   { "tipoChave": "DESCRICAO_CONTEM", "valorChave": "uber", "cartaoFinal": "1870",
  *     "pessoaId": 4, "vigenciaInicio": "2026-12-01", "vigenciaFim": "2026-12-31" }
+ *
+ *   { "tipoChave": "CNPJ", "valorChave": "17687734000193", "descricao": "Spotify Família",
+ *     "divisaoSalvaId": 1 }       (divide a compra, em vez de dar um dono)
  */
 public record RegraRequest(
 
@@ -43,6 +46,8 @@ public record RegraRequest(
 
         LocalDate vigenciaInicio,
 
-        LocalDate vigenciaFim
+        LocalDate vigenciaFim,
+
+        Long divisaoSalvaId
 ) {
 }

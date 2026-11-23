@@ -3,6 +3,7 @@ package dev.alisonsantos.appgastos.caixa;
 import dev.alisonsantos.appgastos.comum.PaginaResponse;
 import dev.alisonsantos.appgastos.comum.RecursoNaoEncontradoException;
 import dev.alisonsantos.appgastos.comum.RegraNegocioException;
+import dev.alisonsantos.appgastos.divisao.Rateio;
 import dev.alisonsantos.appgastos.edicao.PropagadorParcelas;
 import dev.alisonsantos.appgastos.pessoa.Pessoa;
 import dev.alisonsantos.appgastos.pessoa.PessoaService;
@@ -147,7 +148,10 @@ public class CaixaService {
                     cb.isTrue(root.<Boolean>get("contaNosGastos")),
                     cb.isFalse(root.<Boolean>get("revisada")));
 
-            Predicate semDono = cb.isNull(root.get("pessoa"));
+            // Sem dono e sem divisão (a divisão, manual ou por regra, também resolve o dono)
+            Predicate semDono = cb.and(
+                    cb.isNull(root.get("pessoa")),
+                    cb.isEmpty(root.<List<Rateio>>get("rateios")));
             Predicate semLegenda = cb.and(
                     cb.isNull(root.get("regra")),
                     cb.notEqual(root.get("origemDescricao"), OrigemDescricao.MANUAL));

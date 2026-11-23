@@ -62,8 +62,9 @@ public class MotorLegenda {
         Regra paraCategoria = queBatem.stream()
                 .filter(r -> r.getCategoria() != null)
                 .findFirst().orElse(null);
+        // O destino pode ser um dono ou uma divisão salva
         Regra paraPessoa = queBatem.stream()
-                .filter(r -> r.getPessoa() != null && r.getTipoChave() != TipoChave.MCC)
+                .filter(r -> r.defineDestino() && r.getTipoChave() != TipoChave.MCC)
                 .findFirst().orElse(null);
 
         return new ResultadoLegenda(paraDescricao, paraCategoria, paraPessoa);
