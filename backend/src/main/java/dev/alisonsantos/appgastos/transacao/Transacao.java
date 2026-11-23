@@ -19,6 +19,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -139,6 +140,7 @@ public class Transacao {
      * apagado do banco. A transação é "dona" dos seus rateios.
      */
     @OneToMany(mappedBy = "transacao", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id")
     private List<Rateio> rateios = new ArrayList<>();
 
     // ------------------------------------------------------------------
@@ -414,9 +416,9 @@ public class Transacao {
     // Divisão entre pessoas
     // ------------------------------------------------------------------
 
-    /** A compra está dividida entre várias pessoas? */
+    /** A compra está dividida entre várias pessoas (à mão ou por uma regra)? */
     public boolean isDividida() {
-        return origemPessoa == OrigemPessoa.DIVISAO && !rateios.isEmpty();
+        return !rateios.isEmpty();
     }
 
     /** As partes da divisão (somente leitura). Vazio se não estiver dividida. */
@@ -427,14 +429,17 @@ public class Transacao {
     /**
      * Divide a compra: troca as partes pelas novas.
      * Sem dono único: quem "paga" cada pedaço são os rateios.
+     *
+     * @param origem DIVISAO quando você dividiu à mão; REGRA quando foi
+     *               uma regra da legenda (que pode refazer ou desfazer depois)
      */
-    public void aplicarDivisao(List<ParteCalculada> partes) {
+    public void aplicarDivisao(List<ParteCalculada> partes, OrigemPessoa origem) {
         this.rateios.clear();
         for (ParteCalculada parte : partes) {
             this.rateios.add(new Rateio(this, parte.pessoa(), parte.valor(), parte.fracao()));
         }
         this.pessoa = null;
-        this.origemPessoa = OrigemPessoa.DIVISAO;
+        this.origemPessoa = origem;
     }
 
     /** Desfaz a divisão. O dono volta a ser decidido pelas regras e pelo cartão. */

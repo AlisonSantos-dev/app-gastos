@@ -1,5 +1,6 @@
 package dev.alisonsantos.appgastos.legenda;
 
+import dev.alisonsantos.appgastos.divisao.DivisaoSalva;
 import dev.alisonsantos.appgastos.pessoa.Pessoa;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -24,9 +25,9 @@ import java.time.LocalDate;
  * "Quando a compra tiver [tipoChave = valorChave] (e, se informado,
  * for no cartão [cartaoFinal]), ela é: [descricao], [categoria], de [pessoa]."
  *
- * Os três resultados são opcionais (mas pelo menos um é obrigatório):
- * uma regra pode só dar nome, só mudar o dono, só definir a categoria,
- * ou tudo junto.
+ * Os resultados são opcionais (mas pelo menos um é obrigatório):
+ * uma regra pode só dar nome, só mudar o dono (ou dividir a compra),
+ * só definir a categoria, ou tudo junto.
  */
 @Entity
 @Table(name = "regra")
@@ -57,6 +58,15 @@ public class Regra {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pessoa_id")
     private Pessoa pessoa;
+
+    /**
+     * Em vez de um dono, a regra pode DIVIDIR a compra com uma divisão
+     * salva (ex.: CNPJ do Spotify → "Spotify Família", entre 5 pessoas).
+     * Pessoa e divisão são alternativas: a regra tem uma ou outra.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "divisao_salva_id")
+    private DivisaoSalva divisaoSalva;
 
     /** Desempate entre regras do mesmo nível: maior vence. */
     @Column(name = "prioridade", nullable = false)
@@ -173,6 +183,19 @@ public class Regra {
 
     public void setPessoa(Pessoa pessoa) {
         this.pessoa = pessoa;
+    }
+
+    public DivisaoSalva getDivisaoSalva() {
+        return divisaoSalva;
+    }
+
+    public void setDivisaoSalva(DivisaoSalva divisaoSalva) {
+        this.divisaoSalva = divisaoSalva;
+    }
+
+    /** A regra define o destino (um dono ou uma divisão)? */
+    public boolean defineDestino() {
+        return pessoa != null || divisaoSalva != null;
     }
 
     public int getPrioridade() {

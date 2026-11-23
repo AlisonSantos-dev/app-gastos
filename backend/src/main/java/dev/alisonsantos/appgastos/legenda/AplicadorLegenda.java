@@ -1,12 +1,20 @@
 package dev.alisonsantos.appgastos.legenda;
 
+import dev.alisonsantos.appgastos.comum.RegraNegocioException;
+import dev.alisonsantos.appgastos.divisao.CalculadoraDivisao;
+import dev.alisonsantos.appgastos.divisao.DivisaoSalva;
+import dev.alisonsantos.appgastos.divisao.ParteCalculada;
+import dev.alisonsantos.appgastos.divisao.Rateio;
 import dev.alisonsantos.appgastos.pessoa.Pessoa;
 import dev.alisonsantos.appgastos.transacao.OrigemDescricao;
 import dev.alisonsantos.appgastos.transacao.OrigemPessoa;
 import dev.alisonsantos.appgastos.transacao.Transacao;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -15,7 +23,7 @@ import java.util.Objects;
  * Respeita a cascata de quem manda em cada atributo:
  *   - Descrição: MANUAL > REGRA > BANCO
  *   - Categoria: MANUAL > REGRA
- *   - Pessoa:    MANUAL > REGRA > CARTÃO / CONTA (o DestinoPadrao, que roda depois)
+ *   - Pessoa:    MANUAL / DIVISÃO > REGRA (dono ou divisão salva) > CARTÃO / CONTA
  *
  * E se uma regra deixar de valer (foi desativada ou mudou), o que ela
  * tinha definido é desfeito: a descrição volta a ser a do banco, e o
@@ -64,23 +72,29 @@ public class AplicadorLegenda {
             }
         }
 
-        // ---------------- Pessoa ----------------
-        // Só gasto tem dono, e a escolha manual (ou a divisão) nunca é tocada
+        // ---------------- Pessoa (ou divisão) ----------------
+        // Só gasto tem dono, e a escolha manual (ou a divisão manual) nunca é tocada
         if (transacao.getOrigemPessoa() != OrigemPessoa.MANUAL
                 && transacao.getOrigemPessoa() != OrigemPessoa.DIVISAO) {
-            Pessoa novaPessoa = transacao.isContaNosGastos() && resultado.regraPessoa() != null
-                    ? resultado.regraPessoa().getPessoa()
-                    : null;
+            Regra regraDestino = transacao.isContaNosGastos() ? resultado.regraPessoa() : null;
 
-            if (novaPessoa != null) {
+            if (regraDestino != null && regraDestino.getDivisaoSalva() != null) {
+                // A regra DIVIDE a compra
+                mudou |= aplicarDivisaoDaRegra(transacao, regraDestino.getDivisaoSalva());
+
+            } else if (regraDestino != null) {
+                // A regra dá UM dono
+                Pessoa novaPessoa = regraDestino.getPessoa();
                 if (!Objects.equals(novaPessoa, transacao.getPessoa())
-                        || transacao.getOrigemPessoa() != OrigemPessoa.REGRA) {
+                        || transacao.getOrigemPessoa() != OrigemPessoa.REGRA
+                        || transacao.isDividida()) {
                     transacao.definirPessoa(novaPessoa, OrigemPessoa.REGRA);
                     mudou = true;
                 }
+
             } else if (transacao.getOrigemPessoa() == OrigemPessoa.REGRA) {
-                // A regra que definia o dono não vale mais: o DestinoPadrao
-                // (que roda logo depois) decide de novo pelo cartão ou conta
+                // A regra que definia o dono (ou a divisão) não vale mais: o
+                // DestinoPadrao (que roda logo depois) decide de novo pelo cartão
                 transacao.definirPessoa(null, null);
                 mudou = true;
             }
@@ -94,5 +108,47 @@ public class AplicadorLegenda {
         }
 
         return mudou;
+    }
+
+    /**
+     * Divide a compra com a divisão salva da regra. Só refaz se o resultado
+     * for diferente do atual: sem isso, cada reaplicação da legenda apagaria
+     * e recriaria os rateios de todas as compras divididas.
+     *
+     * @return true se a divisão mudou
+     */
+    private boolean aplicarDivisaoDaRegra(Transacao transacao, DivisaoSalva divisao) {
+        if (transacao.getValor().signum() == 0) {
+            return false;
+        }
+        List<ParteCalculada> partes;
+        try {
+            partes = CalculadoraDivisao.calcular(divisao.getModo(), divisao.paraEntradas(), transacao.getValor());
+        } catch (RegraNegocioException e) {
+            return false;
+        }
+        if (transacao.getOrigemPessoa() == OrigemPessoa.REGRA && mesmasPartes(transacao.getRateios(), partes)) {
+            return false;
+        }
+        transacao.aplicarDivisao(partes, OrigemPessoa.REGRA);
+        return true;
+    }
+
+    /** As mesmas pessoas, com os mesmos valores? */
+    private boolean mesmasPartes(List<Rateio> atuais, List<ParteCalculada> novas) {
+        if (atuais.size() != novas.size()) {
+            return false;
+        }
+        Map<Object, BigDecimal> porPessoa = new HashMap<>();
+        atuais.forEach(r -> porPessoa.put(chave(r.getPessoa()), r.getValor()));
+        return novas.stream().allMatch(p -> {
+            BigDecimal valorAtual = porPessoa.get(chave(p.pessoa()));
+            return valorAtual != null && valorAtual.compareTo(p.valor()) == 0;
+        });
+    }
+
+    /** Pelo id (que funciona até com os "proxies" do Hibernate); sem id, a própria instância. */
+    private Object chave(Pessoa pessoa) {
+        return pessoa.getId() != null ? pessoa.getId() : pessoa;
     }
 }

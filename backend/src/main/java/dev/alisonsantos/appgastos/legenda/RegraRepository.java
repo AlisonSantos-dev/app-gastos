@@ -13,14 +13,14 @@ import java.util.List;
 public interface RegraRepository extends JpaRepository<Regra, Long> {
 
     /**
-     * As regras ativas, já com a pessoa carregada (@EntityGraph).
+     * As regras ativas, já com a pessoa e a divisão salva carregadas (@EntityGraph).
      * É o que a legenda usa para identificar as compras.
      */
-    @EntityGraph(attributePaths = "pessoa")
+    @EntityGraph(attributePaths = {"pessoa", "divisaoSalva", "divisaoSalva.partes", "divisaoSalva.partes.pessoa"})
     List<Regra> findByAtivaTrue();
 
     /** Todas as regras (ativas e desativadas), com a pessoa. */
-    @EntityGraph(attributePaths = "pessoa")
+    @EntityGraph(attributePaths = {"pessoa", "divisaoSalva"})
     List<Regra> findAllByOrderByTipoChaveAscValorChaveAsc();
 
     /** Quantas transações cada regra identificou. Mostra quais regras estão "trabalhando". */
