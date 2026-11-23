@@ -1,5 +1,6 @@
 package dev.alisonsantos.appgastos.edicao;
 
+import dev.alisonsantos.appgastos.divisao.CalculadoraDivisao;
 import dev.alisonsantos.appgastos.transacao.OrigemClassificacao;
 import dev.alisonsantos.appgastos.transacao.OrigemDescricao;
 import dev.alisonsantos.appgastos.transacao.OrigemPessoa;
@@ -90,6 +91,10 @@ public class PropagadorParcelas {
         }
         if (origem.getOrigemPessoa() == OrigemPessoa.MANUAL) {
             destino.definirPessoa(origem.getPessoa(), OrigemPessoa.MANUAL);
+        }
+        if (origem.isDividida()) {
+            // Mesma divisão, nas mesmas proporções, sobre o valor desta parcela
+            destino.aplicarDivisao(CalculadoraDivisao.mesmasProporcoes(origem.getRateios(), destino.getValor()));
         }
         if (destino.getObservacao() == null && origem.getObservacao() != null) {
             destino.setObservacao(origem.getObservacao());

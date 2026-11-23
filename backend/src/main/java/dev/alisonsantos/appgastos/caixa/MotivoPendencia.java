@@ -11,7 +11,7 @@ import java.util.List;
  */
 public enum MotivoPendencia {
 
-    /** Ninguém é dono: cartão compartilhado (modo PERGUNTAR) ou conta sem dono. */
+    /** Ninguém é dono (nem está dividida): cartão compartilhado (modo PERGUNTAR) ou conta sem dono. */
     SEM_DONO,
 
     /** Nenhuma regra da legenda reconheceu a descrição, e ela não foi editada à mão. */
@@ -26,7 +26,7 @@ public enum MotivoPendencia {
         if (!transacao.isContaNosGastos() || transacao.isRevisada()) {
             return motivos;
         }
-        if (transacao.getPessoa() == null) {
+        if (transacao.getPessoa() == null && !transacao.isDividida()) {
             motivos.add(SEM_DONO);
         }
         if (transacao.getRegra() == null && transacao.getOrigemDescricao() != OrigemDescricao.MANUAL) {

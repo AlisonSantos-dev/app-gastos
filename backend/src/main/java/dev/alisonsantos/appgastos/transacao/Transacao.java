@@ -2,9 +2,12 @@ package dev.alisonsantos.appgastos.transacao;
 
 import dev.alisonsantos.appgastos.cartao.Cartao;
 import dev.alisonsantos.appgastos.conta.Conta;
+import dev.alisonsantos.appgastos.divisao.ParteCalculada;
+import dev.alisonsantos.appgastos.divisao.Rateio;
 import dev.alisonsantos.appgastos.fatura.Fatura;
 import dev.alisonsantos.appgastos.legenda.Regra;
 import dev.alisonsantos.appgastos.pessoa.Pessoa;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,12 +18,16 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Um lançamento vindo da Pluggy: compra no cartão, estorno, pagamento de
@@ -123,6 +130,16 @@ public class Transacao {
     @Enumerated(EnumType.STRING)
     @Column(name = "origem_pessoa", length = 20)
     private OrigemPessoa origemPessoa;
+
+    /**
+     * Quando a compra é dividida entre várias pessoas, cada parte é um rateio.
+     *
+     * cascade = ALL: salvar, atualizar e apagar a transação faz o mesmo
+     * com os rateios dela. orphanRemoval: um rateio tirado da lista é
+     * apagado do banco. A transação é "dona" dos seus rateios.
+     */
+    @OneToMany(mappedBy = "transacao", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Rateio> rateios = new ArrayList<>();
 
     // ------------------------------------------------------------------
     // Legenda
@@ -387,8 +404,42 @@ public class Transacao {
 
     /** Define o destino junto com a origem dele. */
     public void definirPessoa(Pessoa pessoa, OrigemPessoa origem) {
+        // Definir um dono único desfaz qualquer divisão que existisse
+        this.rateios.clear();
         this.pessoa = pessoa;
         this.origemPessoa = origem;
+    }
+
+    // ------------------------------------------------------------------
+    // Divisão entre pessoas
+    // ------------------------------------------------------------------
+
+    /** A compra está dividida entre várias pessoas? */
+    public boolean isDividida() {
+        return origemPessoa == OrigemPessoa.DIVISAO && !rateios.isEmpty();
+    }
+
+    /** As partes da divisão (somente leitura). Vazio se não estiver dividida. */
+    public List<Rateio> getRateios() {
+        return Collections.unmodifiableList(rateios);
+    }
+
+    /**
+     * Divide a compra: troca as partes pelas novas.
+     * Sem dono único: quem "paga" cada pedaço são os rateios.
+     */
+    public void aplicarDivisao(List<ParteCalculada> partes) {
+        this.rateios.clear();
+        for (ParteCalculada parte : partes) {
+            this.rateios.add(new Rateio(this, parte.pessoa(), parte.valor(), parte.fracao()));
+        }
+        this.pessoa = null;
+        this.origemPessoa = OrigemPessoa.DIVISAO;
+    }
+
+    /** Desfaz a divisão. O dono volta a ser decidido pelas regras e pelo cartão. */
+    public void desfazerDivisao() {
+        definirPessoa(null, null);
     }
 
     public Regra getRegra() {
@@ -436,6 +487,7 @@ public class Transacao {
     public boolean temEdicaoManual() {
         return origemDescricao == OrigemDescricao.MANUAL
                 || origemPessoa == OrigemPessoa.MANUAL
+                || origemPessoa == OrigemPessoa.DIVISAO
                 || categoriaManual
                 || isClassificacaoManual();
     }

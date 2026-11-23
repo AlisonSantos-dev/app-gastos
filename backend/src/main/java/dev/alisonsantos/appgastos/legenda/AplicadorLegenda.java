@@ -65,8 +65,9 @@ public class AplicadorLegenda {
         }
 
         // ---------------- Pessoa ----------------
-        // Só gasto tem dono, e a escolha manual nunca é tocada
-        if (transacao.getOrigemPessoa() != OrigemPessoa.MANUAL) {
+        // Só gasto tem dono, e a escolha manual (ou a divisão) nunca é tocada
+        if (transacao.getOrigemPessoa() != OrigemPessoa.MANUAL
+                && transacao.getOrigemPessoa() != OrigemPessoa.DIVISAO) {
             Pessoa novaPessoa = transacao.isContaNosGastos() && resultado.regraPessoa() != null
                     ? resultado.regraPessoa().getPessoa()
                     : null;

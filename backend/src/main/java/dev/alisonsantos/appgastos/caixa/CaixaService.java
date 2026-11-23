@@ -147,7 +147,11 @@ public class CaixaService {
                     cb.isTrue(root.<Boolean>get("contaNosGastos")),
                     cb.isFalse(root.<Boolean>get("revisada")));
 
-            Predicate semDono = cb.isNull(root.get("pessoa"));
+            // Sem dono e não dividida (a divisão também resolve o dono)
+            Predicate semDono = cb.and(
+                    cb.isNull(root.get("pessoa")),
+                    cb.or(cb.isNull(root.get("origemPessoa")),
+                            cb.notEqual(root.get("origemPessoa"), OrigemPessoa.DIVISAO)));
             Predicate semLegenda = cb.and(
                     cb.isNull(root.get("regra")),
                     cb.notEqual(root.get("origemDescricao"), OrigemDescricao.MANUAL));
