@@ -79,12 +79,15 @@ public class PessoaService {
                 .orElseThrow(() -> RecursoNaoEncontradoException.de("Pessoa", id));
     }
 
-    /** Os campos opcionais: cor, nome no extrato e ativo. */
+    /** Os campos opcionais: cor, nome no extrato, ativo e titular. */
     private void aplicarOpcionais(Pessoa pessoa, PessoaRequest pedido) {
         pessoa.setCor(pedido.cor() == null ? null : pedido.cor().toUpperCase(Locale.ROOT));
         pessoa.setNomeNoExtrato(textoOuNulo(pedido.nomeNoExtrato()));
         if (pedido.ativo() != null) {
             pessoa.setAtivo(pedido.ativo());
+        }
+        if (pedido.titular() != null) {
+            pessoa.setTitular(pedido.titular());
         }
     }
 

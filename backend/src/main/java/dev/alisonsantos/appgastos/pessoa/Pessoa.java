@@ -48,6 +48,13 @@ public class Pessoa {
     @Column(name = "ativo", nullable = false)
     private boolean ativo = true;
 
+    /**
+     * O titular: quem paga as faturas e as contas, e recebe dos outros.
+     * Ele não "deve a si mesmo", então fica fora do painel de recebimentos.
+     */
+    @Column(name = "titular", nullable = false)
+    private boolean titular;
+
     @Column(name = "criado_em", nullable = false, updatable = false)
     private Instant criadoEm;
 
@@ -120,6 +127,14 @@ public class Pessoa {
 
     public void setAtivo(boolean ativo) {
         this.ativo = ativo;
+    }
+
+    public boolean isTitular() {
+        return titular;
+    }
+
+    public void setTitular(boolean titular) {
+        this.titular = titular;
     }
 
     public Instant getCriadoEm() {
