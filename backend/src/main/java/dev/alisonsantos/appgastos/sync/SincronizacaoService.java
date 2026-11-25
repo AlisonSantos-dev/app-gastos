@@ -1,5 +1,6 @@
 package dev.alisonsantos.appgastos.sync;
 
+import dev.alisonsantos.appgastos.contafixa.ConciliacaoService;
 import dev.alisonsantos.appgastos.pluggy.PluggyApiClient;
 import dev.alisonsantos.appgastos.pluggy.PluggyProperties;
 import dev.alisonsantos.appgastos.pluggy.dto.PluggyAccount;
@@ -18,6 +19,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *   2. se for cartão, busca e grava as faturas;
  *   3. busca todas as transações e grava/atualiza.
  *
+ * No final, procura no extrato os pagamentos das contas fixas.
+ *
  * As chamadas à Pluggy acontecem AQUI, fora de transação do banco.
  * A gravação fica na SincronizacaoPersistencia, com @Transactional.
  * Assim o banco de dados não fica "preso" esperando a resposta da internet.
@@ -33,16 +36,19 @@ public class SincronizacaoService {
     private final PluggyApiClient apiClient;
     private final PluggyProperties properties;
     private final SincronizacaoPersistencia persistencia;
+    private final ConciliacaoService conciliacaoContasFixas;
 
     /** Impede duas sincronizações ao mesmo tempo (ex.: clique duplo). */
     private final AtomicBoolean emAndamento = new AtomicBoolean(false);
 
     public SincronizacaoService(PluggyApiClient apiClient,
                                 PluggyProperties properties,
-                                SincronizacaoPersistencia persistencia) {
+                                SincronizacaoPersistencia persistencia,
+                                ConciliacaoService conciliacaoContasFixas) {
         this.apiClient = apiClient;
         this.properties = properties;
         this.persistencia = persistencia;
+        this.conciliacaoContasFixas = conciliacaoContasFixas;
     }
 
     /**
@@ -64,6 +70,7 @@ public class SincronizacaoService {
             for (String itemId : properties.itemIds()) {
                 sincronizarBanco(itemId.trim(), resumo);
             }
+            conciliarContasFixas(resumo);
         } finally {
             resumo.finalizar();
             emAndamento.set(false);
@@ -71,6 +78,17 @@ public class SincronizacaoService {
 
         log.info("Sync: concluída em {}s: {}", resumo.getDuracaoSegundos(), resumo);
         return resumo;
+    }
+
+    /** Com o extrato atualizado, procura os pagamentos das contas fixas. Um erro aqui não derruba o sync. */
+    private void conciliarContasFixas(ResumoSincronizacao resumo) {
+        try {
+            int encontrados = conciliacaoContasFixas.conciliarAposSync();
+            log.info("Sync: {} pagamento(s) de contas fixas encontrado(s)", encontrados);
+        } catch (RuntimeException e) {
+            log.warn("Sync: falha ao procurar os pagamentos das contas fixas", e);
+            resumo.adicionarErro("Contas fixas: " + e.getMessage());
+        }
     }
 
     private void sincronizarBanco(String itemId, ResumoSincronizacao resumo) {
