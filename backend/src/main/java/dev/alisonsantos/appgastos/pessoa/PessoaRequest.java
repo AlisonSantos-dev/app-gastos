@@ -17,6 +17,7 @@ import jakarta.validation.constraints.Size;
  * @param cor           opcional, em hexadecimal (ex.: #60A5FA)
  * @param nomeNoExtrato opcional: como o nome aparece nos Pix recebidos
  * @param ativo         opcional: na criação, se não vier, a pessoa nasce ativa
+ * @param titular       opcional: quem paga as faturas e recebe dos outros (fica fora dos recebimentos)
  */
 public record PessoaRequest(
 
@@ -33,6 +34,8 @@ public record PessoaRequest(
         @Size(max = 150, message = "deve ter no máximo 150 caracteres")
         String nomeNoExtrato,
 
-        Boolean ativo
+        Boolean ativo,
+
+        Boolean titular
 ) {
 }

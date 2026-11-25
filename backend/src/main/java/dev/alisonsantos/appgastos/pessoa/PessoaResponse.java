@@ -9,7 +9,8 @@ public record PessoaResponse(
         String tipo,
         String cor,
         String nomeNoExtrato,
-        boolean ativo
+        boolean ativo,
+        boolean titular
 ) {
 
     public static PessoaResponse de(Pessoa pessoa) {
@@ -19,6 +20,7 @@ public record PessoaResponse(
                 pessoa.getTipo().name(),
                 pessoa.getCor(),
                 pessoa.getNomeNoExtrato(),
-                pessoa.isAtivo());
+                pessoa.isAtivo(),
+                pessoa.isTitular());
     }
 }
